@@ -1,10 +1,17 @@
 export const LEAGUES={bundesliga:{sport:'football',name:'Bundesliga'},nba:{sport:'basketball',name:'NBA'}};
-export function eventLeague(event){return event?.sport==='football'?'bundesliga':event?.sport==='basketball'?'nba':null;}
-export function groupEvents(events){return Object.entries(LEAGUES).map(([id,league])=>({id,...league,events:events.filter(e=>eventLeague(e)===id)})).filter(g=>g.events.length);}
+export function leagueMetadata(event){
+ if(!['football','basketball'].includes(event?.sport))return null;
+ if(event.leagueId===undefined&&event.leagueTitle===undefined){const id=event.sport==='football'?'bundesliga':'nba';return{id,...LEAGUES[id],legacy:true};}
+ if(typeof event.leagueId!=='string'||event.leagueId.length>100||!new RegExp(event.sport==='football'?'^soccer_[a-z0-9_]+$':'^basketball_[a-z0-9_]+$').test(event.leagueId)||typeof event.leagueTitle!=='string'||!event.leagueTitle.trim()||event.leagueTitle.length>150)return null;
+ return{id:event.leagueId,name:event.leagueTitle,sport:event.sport,legacy:false};
+}
+export function eventLeague(event){return leagueMetadata(event)?.id??null;}
+export function groupEvents(events){const groups=new Map();for(const event of events){const meta=leagueMetadata(event);if(!meta)continue;const existing=groups.get(meta.id);if(existing&&(existing.sport!==meta.sport||existing.name!==meta.name))continue;if(!existing)groups.set(meta.id,{...meta,events:[]});groups.get(meta.id).events.push(event);}return [...groups.values()];}
+export function escapeText(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 export function marketOutcomes(event){const outcomes=Array.isArray(event?.outcomes)?event.outcomes:[];return [event?.home,...(event?.sport==='football'?['Draw']:[]),event?.away].map((name,i)=>({name,label:i===0?'1':name==='Draw'?'X':'2',outcome:outcomes.find(o=>o.name===name)||null}));}
 export const TIME_ZONE='Europe/Berlin';
 export function berlinDate(timestamp){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(timestamp);const get=type=>parts.find(p=>p.type===type).value;return `${get('year')}-${get('month')}-${get('day')}`;}
 export function validDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const d=new Date(`${value}T12:00:00Z`);return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;}
 export function selectedDate(mode,date,now=Date.now()){if(mode==='all')return null;if(mode==='date')return validDate(date)?date:'';const today=berlinDate(now);if(mode==='today')return today;if(mode==='tomorrow'){const d=new Date(`${today}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+1);return d.toISOString().slice(0,10);}return '';}
-export function filterEvents(events,{sport='all',league='all',day='all',date='',query='',now=Date.now()}={}){const target=selectedDate(day,date,now),q=query.trim().toLocaleLowerCase('de-DE');return events.filter(e=>eventLeague(e)!==null&&(league==='all'||eventLeague(e)===league)&&(sport==='all'||e.sport===sport)&&(target===null||berlinDate(e.start)===target)&&(!q||`${e.home} ${e.away} ${LEAGUES[eventLeague(e)]?.name||''}`.toLocaleLowerCase('de-DE').includes(q))).slice().sort((a,b)=>a.start-b.start||a.id.localeCompare(b.id));}
+export function filterEvents(events,{sport='all',league='all',day='all',date='',query='',now=Date.now()}={}){const target=selectedDate(day,date,now),q=query.trim().toLocaleLowerCase('de-DE');return events.filter(e=>eventLeague(e)!==null&&(league==='all'||eventLeague(e)===league)&&(sport==='all'||e.sport===sport)&&(target===null||berlinDate(e.start)===target)&&(!q||`${e.home} ${e.away} ${leagueMetadata(e)?.name||''}`.toLocaleLowerCase('de-DE').includes(q))).slice().sort((a,b)=>a.start-b.start||a.id.localeCompare(b.id));}
 export function dateLabel(mode,date,now=Date.now()){const value=selectedDate(mode,date,now);if(value===null)return 'alle Tage';if(!value)return 'das gewählte Datum';return new Intl.DateTimeFormat('de-DE',{timeZone:TIME_ZONE,dateStyle:'medium'}).format(new Date(`${value}T12:00:00Z`));}

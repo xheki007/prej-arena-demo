@@ -1,5 +1,7 @@
 import{filterEvents,dateLabel,TIME_ZONE,groupEvents,marketOutcomes,eventLeague,escapeText}from'./filter.mjs?v=20261116-linkfix1';
 import{takeKey,decryptSnapshot,availableEvents,settleTicket}from'./feed.mjs?v=20261116-linkfix1';
+// A link reopened in the same tab may change only its fragment.
+window.addEventListener('hashchange',()=>{if(new URLSearchParams(location.hash.slice(1)).has('k'))location.reload();});
 let shareUrl=location.href;
 let key=null,snapshot=null,sequence=-1,lastPayload=null,filter='all',league='all',day='all',chosenDate='',query='',picks=[],busy=false,tickets=[];
 const $=id=>document.getElementById(id),esc=escapeText;

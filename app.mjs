@@ -1,5 +1,6 @@
-import{filterEvents,dateLabel,TIME_ZONE,groupEvents,marketOutcomes,eventLeague,escapeText}from'./filter.mjs?v=20261116-linkfix1';
-import{takeKey,decryptSnapshot,availableEvents,settleTicket}from'./feed.mjs?v=20261116-linkfix1';
+import{restoreAccess,clearAccess}from'./access.mjs?v=20261116-session1';
+import{filterEvents,dateLabel,TIME_ZONE,groupEvents,marketOutcomes,eventLeague,escapeText}from'./filter.mjs?v=20261116-session1';
+import{takeKey,decryptSnapshot,availableEvents,settleTicket}from'./feed.mjs?v=20261116-session1';
 // A link reopened in the same tab may change only its fragment.
 window.addEventListener('hashchange',()=>{if(new URLSearchParams(location.hash.slice(1)).has('k'))location.reload();});
 let shareUrl=location.href;
@@ -8,7 +9,8 @@ const $=id=>document.getElementById(id),esc=escapeText;
 const number=v=>new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
 const outcome=name=>name==='Draw'?'Unentschieden':name;
 const time=v=>new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'short',timeZone:TIME_ZONE}).format(v);
-try{key=takeKey(location,history);}catch{$('status').textContent='Der private Link ist ungültig. Bitte verwende den vollständigen Link.';}
+let accessStorage;try{accessStorage=sessionStorage;}catch{}
+try{const access=restoreAccess(location,history,accessStorage,takeKey);key=access.key;shareUrl=access.shareUrl;}catch{$('status').textContent='Der private Link ist ungültig. Bitte verwende den vollständigen Link.';}
 try{const saved=JSON.parse(localStorage.getItem('prej-private-tickets-v1')||'[]');if(Array.isArray(saved))tickets=saved.filter(t=>t&&typeof t.id==='string'&&Number.isFinite(t.created)&&Array.isArray(t.picks)&&t.picks.length>0&&t.picks.length<=10&&t.picks.every(p=>p&&typeof p.id==='string'&&typeof p.home==='string'&&typeof p.away==='string'&&typeof p.name==='string'&&Number.isFinite(p.start)&&Number.isFinite(p.price))).slice(0,100);}catch{}
 function save(){try{localStorage.setItem('prej-private-tickets-v1',JSON.stringify(tickets));}catch{$('status').textContent='Lokales Speichern ist nicht verfügbar. Der Tipp bleibt nur erhalten, solange diese Seite geöffnet ist.';}}
 function render(){const now=Date.now(),events=snapshot?availableEvents(snapshot,now):[];picks=picks.filter(p=>events.some(e=>e.id===p.id&&e.home===p.home&&e.away===p.away&&e.start===p.start&&e.outcomes.some(o=>o.name===p.name&&o.price===p.price)));
@@ -37,5 +39,7 @@ $('match-date').addEventListener('change',()=>{chosenDate=$('match-date').value;
 $('team-search').addEventListener('input',()=>{query=$('team-search').value;render();});
 $('submit').addEventListener('click',()=>{render();if(!picks.length)return;tickets.unshift({id:crypto.randomUUID(),created:Date.now(),picks:structuredClone(picks)});tickets=tickets.slice(0,100);picks=[];save();render();});$('clear').addEventListener('click',()=>{tickets=[];save();render();});$('refresh').addEventListener('click',refresh);
 const shareButton=document.createElement('button');shareButton.textContent='Privaten Link kopieren';shareButton.disabled=!key;$('status').after(shareButton);shareButton.addEventListener('click',async()=>{if(!key)return;try{await navigator.clipboard.writeText(shareUrl);$('status').textContent='Vollständiger privater Link kopiert. Nur mit deiner Testperson teilen.';}catch{$('status').textContent='Kopieren nicht möglich. Kopiere den Link über die private Zugangsseite, nicht aus der Adressleiste.';}});
-render();if(key)refresh();else $('status').textContent='Kein Zugriffsschlüssel im Link: Deshalb sind hier 0 Spiele zu sehen. Bitte den vollständigen ursprünglichen Testlink öffnen, nicht die Adresse aus einer bereits geöffneten Seite. Der Schlüssel wird nicht gespeichert.';
+const accessNote=document.createElement('p');accessNote.className='small';accessNote.textContent='Der Zugriffsschlüssel bleibt nur in dieser Browser-Sitzung gespeichert, nicht dauerhaft und nicht auf dem Server. Duplizierte oder wiederhergestellte Tabs können ihn übernehmen. Auf gemeinsam genutzten Geräten Zugriff beenden.';shareButton.after(accessNote);
+const endAccess=document.createElement('button');endAccess.textContent='Privaten Zugriff beenden';endAccess.disabled=!key;accessNote.after(endAccess);endAccess.addEventListener('click',()=>{clearAccess(accessStorage);key=null;shareUrl='';snapshot=null;picks=[];location.reload();});
+render();if(key)refresh();else $('status').textContent='Kein Zugriffsschlüssel im Link: Deshalb sind hier 0 Spiele zu sehen. Bitte den vollständigen ursprünglichen Testlink öffnen, nicht die Adresse aus einer bereits geöffneten Seite. Öffne den ursprünglichen privaten Link erneut.';
 setInterval(render,30000);

@@ -1,5 +1,5 @@
-import{filterEvents,dateLabel,TIME_ZONE,groupEvents,marketOutcomes,eventLeague}from'./filter.mjs';
-import{takeKey,decryptSnapshot,availableEvents,settleTicket}from'./feed.mjs';
+import{filterEvents,dateLabel,TIME_ZONE,groupEvents,marketOutcomes,eventLeague}from'./filter.mjs?v=20261116-sports2';
+import{takeKey,decryptSnapshot,availableEvents,settleTicket}from'./feed.mjs?v=20261116-sports2';
 let key=null,snapshot=null,sequence=-1,lastPayload=null,filter='all',league='all',day='all',chosenDate='',query='',picks=[],busy=false,tickets=[];
 const $=id=>document.getElementById(id),esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const number=v=>new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v);

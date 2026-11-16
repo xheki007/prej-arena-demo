@@ -1,5 +1,6 @@
-import{filterEvents,dateLabel,TIME_ZONE,groupEvents,marketOutcomes,eventLeague,escapeText}from'./filter.mjs?v=20261116-leagues1';
-import{takeKey,decryptSnapshot,availableEvents,settleTicket}from'./feed.mjs?v=20261116-leagues1';
+import{filterEvents,dateLabel,TIME_ZONE,groupEvents,marketOutcomes,eventLeague,escapeText}from'./filter.mjs?v=20261116-linkfix1';
+import{takeKey,decryptSnapshot,availableEvents,settleTicket}from'./feed.mjs?v=20261116-linkfix1';
+let shareUrl=location.href;
 let key=null,snapshot=null,sequence=-1,lastPayload=null,filter='all',league='all',day='all',chosenDate='',query='',picks=[],busy=false,tickets=[];
 const $=id=>document.getElementById(id),esc=escapeText;
 const number=v=>new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
@@ -33,5 +34,6 @@ $('quick-today').addEventListener('click',()=>{day='today';chosenDate='';$('matc
 $('match-date').addEventListener('change',()=>{chosenDate=$('match-date').value;day=chosenDate?'date':'all';updateDayButtons();render();});
 $('team-search').addEventListener('input',()=>{query=$('team-search').value;render();});
 $('submit').addEventListener('click',()=>{render();if(!picks.length)return;tickets.unshift({id:crypto.randomUUID(),created:Date.now(),picks:structuredClone(picks)});tickets=tickets.slice(0,100);picks=[];save();render();});$('clear').addEventListener('click',()=>{tickets=[];save();render();});$('refresh').addEventListener('click',refresh);
-render();if(key)refresh();else $('status').textContent='Für diesen Test benötigst du den vollständigen privaten Link. Der Schlüssel wird nicht im Browser gespeichert. Öffne nach dem Schließen oder Neuladen wieder den ursprünglichen Link.';
+const shareButton=document.createElement('button');shareButton.textContent='Privaten Link kopieren';shareButton.disabled=!key;$('status').after(shareButton);shareButton.addEventListener('click',async()=>{if(!key)return;try{await navigator.clipboard.writeText(shareUrl);$('status').textContent='Vollständiger privater Link kopiert. Nur mit deiner Testperson teilen.';}catch{$('status').textContent='Kopieren nicht möglich. Kopiere den Link über die private Zugangsseite, nicht aus der Adressleiste.';}});
+render();if(key)refresh();else $('status').textContent='Kein Zugriffsschlüssel im Link: Deshalb sind hier 0 Spiele zu sehen. Bitte den vollständigen ursprünglichen Testlink öffnen, nicht die Adresse aus einer bereits geöffneten Seite. Der Schlüssel wird nicht gespeichert.';
 setInterval(render,30000);

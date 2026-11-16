@@ -1,0 +1,4 @@
+// Tokens are scoped to both a channel and the current navigation/account epoch.
+export function createRequestState(){let epoch=0;const channels=new Map();return {invalidate(){epoch++;channels.clear()},begin(channel){const sequence=(channels.get(channel)||0)+1;channels.set(channel,sequence);return {epoch,channel,sequence}},current(token){return !!token&&token.epoch===epoch&&channels.get(token.channel)===token.sequence}}}
+export const modeTickets=(tickets,mode)=>tickets.filter(t=>(t.mode||'demo')===mode);
+export function leagueProgress(points){const p=Math.max(0,Number(points)||0);if(p>=5000)return {tier:'Gold',next:null,remaining:0,percent:100};const silver=p>=1000,base=silver?1000:0,target=silver?5000:1000;return {tier:silver?'Silber':'Bronze',next:silver?'Gold':'Silber',remaining:target-p,percent:Math.min(100,Math.round((p-base)/(target-base)*100))}}
